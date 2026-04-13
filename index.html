@@ -56,9 +56,7 @@
         <section class="resource-list" id="resourceList"></section>
     </main>
 
-
     <main id="adminDashboard" class="main-container" style="display: none;">
-        
         <div class="admin-card">
             <h3 style="color: #7b61ff; margin-bottom: 15px;">➕ Add New Resource</h3>
             <div class="admin-form-row">
@@ -72,12 +70,10 @@
                     <option value="PYQ">Previous Year Qs</option><option value="Lab">Lab Manuals</option>
                 </select>
             </div>
-            
             <div class="admin-form-row" style="margin-top: 12px;">
                 <input type="text" id="newTitle" placeholder="Topic Title (e.g. PIC18 Architecture)" class="input-box" style="flex: 2; margin-top: 0;">
                 <input type="date" id="newDateRes" class="input-box" style="flex: 1; margin-top: 0;" title="Select Publish Date">
             </div>
-            
             <input type="url" id="newLink" placeholder="Paste Google Drive Link Here" class="input-box">
             <button class="primary-btn" onclick="addResource()">Publish Resource</button>
         </div>
@@ -106,12 +102,36 @@
     <div id="adminModal" class="modal">
         <div class="modal-content">
             <h3 style="color: #7b61ff; margin-bottom: 15px;">Admin Access</h3>
+            <input type="email" id="adminEmail" placeholder="Admin Email" class="input-box">
             <input type="password" id="adminPass" placeholder="Enter Secure Password" class="input-box">
             <button class="primary-btn" onclick="checkLogin()">Login</button>
             <button class="cancel-btn" onclick="closeModal()">Cancel</button>
+            <p id="loginError" style="color: #ff4b5c; font-size: 12px; margin-top: 10px; display: none;">Invalid credentials.</p>
         </div>
     </div>
 
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAMAOGNtXB6SonFeWn8YTKu8GR_go9kD_o",
+            authDomain: "eije-hub.firebaseapp.com",
+            databaseURL: "https://eije-hub-default-rtdb.firebaseio.com",
+            projectId: "eije-hub",
+            storageBucket: "eije-hub.firebasestorage.app",
+            messagingSenderId: "450799823595",
+            appId: "1:450799823595:web:5337def7ddefa85bf2ecae"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        window.firebaseAuth = { auth, signInWithEmailAndPassword, signOut, onAuthStateChanged };
+        window.firebaseDb = { db, ref, push, onValue, remove };
+    </script>
     <script src="script.js"></script>
 </body>
 </html>

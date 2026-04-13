@@ -1,11 +1,36 @@
-const ADMIN_PASS = "admin123"; 
 let currentCategoryFilter = "All";
+let notices = [];
+let resources = [];
 
-let notices = JSON.parse(localStorage.getItem('eijeNotices')) || [
-    { id: 1, text: "Welcome to EIJE Resource Hub! Official notices will appear here.", isUrgent: false, date: "13/04/2026" }
-];
+setTimeout(initFirebase, 500);
 
-let resources = JSON.parse(localStorage.getItem('eijeResources')) || [];
+function initFirebase() {
+    const { auth, onAuthStateChanged } = window.firebaseAuth;
+    const { db, ref, onValue } = window.firebaseDb;
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) showAdminPanel();
+        else hideAdminPanel();
+    });
+
+    onValue(ref(db, "resources"), (snapshot) => {
+        resources = [];
+        snapshot.forEach((child) => {
+            resources.push({ id: child.key, ...child.val() });
+        });
+        resources.sort((a, b) => b.createdAt - a.createdAt);
+        renderUI();
+    });
+
+    onValue(ref(db, "notices"), (snapshot) => {
+        notices = [];
+        snapshot.forEach((child) => {
+            notices.push({ id: child.key, ...child.val() });
+        });
+        notices.sort((a, b) => b.createdAt - a.createdAt);
+        renderUI();
+    });
+}
 
 function formatDate(dateString) {
     if(!dateString) return "";
@@ -13,13 +38,115 @@ function formatDate(dateString) {
     return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateString;
 }
 
-// Set default dates to today for inputs
 function setDefaultDates() {
     const today = new Date().toISOString().split('T')[0];
     const resDate = document.getElementById("newDateRes");
     const notDate = document.getElementById("newDateNot");
     if(resDate) resDate.value = today;
     if(notDate) notDate.value = today;
+}
+
+const modal = document.getElementById("adminModal");
+
+document.getElementById("loginBtn").onclick = () => {
+    modal.style.display = "block";
+    document.getElementById("adminEmail").focus();
+};
+
+function closeModal() { 
+    modal.style.display = "none"; 
+    document.getElementById("adminEmail").value = "";
+    document.getElementById("adminPass").value = ""; 
+    document.getElementById("loginError").style.display = "none";
+}
+
+async function checkLogin() {
+    const email = document.getElementById("adminEmail").value;
+    const pass = document.getElementById("adminPass").value;
+    const err = document.getElementById("loginError");
+    
+    try {
+        const { auth, signInWithEmailAndPassword } = window.firebaseAuth;
+        await signInWithEmailAndPassword(auth, email, pass);
+        closeModal();
+    } catch (error) {
+        err.innerText = "Wrong email or password.";
+        err.style.display = "block";
+    }
+}
+
+async function logoutAdmin() {
+    const { auth, signOut } = window.firebaseAuth;
+    await signOut(auth);
+}
+
+function showAdminPanel() {
+    document.getElementById("studentView").style.display = "none";
+    document.getElementById("adminDashboard").style.display = "block";
+    document.getElementById("loginBtn").style.display = "none";
+    document.getElementById("logoutBtn").style.display = "block";
+    setDefaultDates();
+    renderUI();
+}
+
+function hideAdminPanel() {
+    document.getElementById("studentView").style.display = "block";
+    document.getElementById("adminDashboard").style.display = "none";
+    document.getElementById("loginBtn").style.display = "block";
+    document.getElementById("logoutBtn").style.display = "none";
+    renderUI();
+}
+
+async function addResource() {
+    const title = document.getElementById("newTitle").value.trim();
+    const link = document.getElementById("newLink").value.trim();
+    const rawDate = document.getElementById("newDateRes").value || new Date().toISOString().split('T')[0];
+    
+    if(!title || !link) return alert("Please fill both Title and Link!");
+
+    const { db, ref, push } = window.firebaseDb;
+    
+    await push(ref(db, "resources"), {
+        sem: document.getElementById("newSem").value,
+        category: document.getElementById("newCat").value,
+        title: title,
+        link: link,
+        date: formatDate(rawDate),
+        createdAt: Date.now()
+    });
+    
+    document.getElementById("newTitle").value = "";
+    document.getElementById("newLink").value = "";
+    setDefaultDates();
+}
+
+async function addNotice() {
+    const text = document.getElementById("newNoticeText").value.trim();
+    const rawDate = document.getElementById("newDateNot").value || new Date().toISOString().split('T')[0];
+    
+    if(!text) return alert("Notice cannot be empty!");
+
+    const { db, ref, push } = window.firebaseDb;
+
+    await push(ref(db, "notices"), {
+        text: text, 
+        isUrgent: document.getElementById("newNoticeUrgent").checked,
+        date: formatDate(rawDate),
+        createdAt: Date.now()
+    });
+    
+    document.getElementById("newNoticeText").value = "";
+    document.getElementById("newNoticeUrgent").checked = false;
+    setDefaultDates();
+}
+
+async function deleteItem(type, id) {
+    if(!confirm("Are you sure you want to permanently delete this?")) return;
+    
+    const { db, ref, remove } = window.firebaseDb;
+    const path = type === 'res' ? `resources/${id}` : `notices/${id}`;
+    
+    await remove(ref(db, path));
 }
 
 function renderUI() {
@@ -77,6 +204,31 @@ function renderStudentResources() {
     });
 }
 
+function renderAdminLists() {
+    const resList = document.getElementById("adminResourceList");
+    const notList = document.getElementById("adminNoticeList");
+    
+    resList.innerHTML = resources.length === 0 ? "<li style='color:#a0a4cc;'>No resources uploaded yet.</li>" : "";
+    resources.forEach(r => {
+        resList.innerHTML += `
+            <li>
+                <div style="max-width: 70%;"><strong>[${r.sem}]</strong> ${r.title} <span class="date-badge">${r.date}</span><br><span style="font-size:11px; color:#a0a4cc;">${r.category}</span></div> 
+                <button class="delete-btn" onclick="deleteItem('res', '${r.id}')">Delete</button>
+            </li>
+        `;
+    });
+    
+    notList.innerHTML = notices.length === 0 ? "<li style='color:#a0a4cc;'>No notices added yet.</li>" : "";
+    notices.forEach(n => {
+        notList.innerHTML += `
+            <li>
+                <div style="max-width: 70%; line-height: 1.4;">${n.text} <br><span class="date-badge" style="margin-top:5px; display:inline-block;">${n.date}</span></div> 
+                <button class="delete-btn" onclick="deleteItem('not', '${n.id}')">Delete</button>
+            </li>
+        `;
+    });
+}
+
 function setCategoryFilter(cat) {
     if(currentCategoryFilter === cat) {
         currentCategoryFilter = "All";
@@ -94,126 +246,5 @@ function setCategoryFilter(cat) {
     renderUI();
 }
 
-// --- Admin Authentication ---
-const modal = document.getElementById("adminModal");
-
-document.getElementById("loginBtn").onclick = () => {
-    modal.style.display = "block";
-    document.getElementById("adminPass").focus();
-};
-
-function closeModal() { 
-    modal.style.display = "none"; 
-    document.getElementById("adminPass").value = ""; 
-}
-
-function checkLogin() {
-    if(document.getElementById("adminPass").value === ADMIN_PASS) {
-        document.getElementById("studentView").style.display = "none";
-        document.getElementById("adminDashboard").style.display = "block";
-        document.getElementById("loginBtn").style.display = "none";
-        document.getElementById("logoutBtn").style.display = "block";
-        setDefaultDates(); // Set today's date automatically
-        closeModal();
-        renderUI();
-    } else {
-        alert("Incorrect Password! Access Denied.");
-    }
-}
-
-function logoutAdmin() {
-    document.getElementById("studentView").style.display = "block";
-    document.getElementById("adminDashboard").style.display = "none";
-    document.getElementById("loginBtn").style.display = "block";
-    document.getElementById("logoutBtn").style.display = "none";
-    renderUI();
-}
-
-// --- Admin Form Operations ---
-function addResource() {
-    const title = document.getElementById("newTitle").value.trim();
-    const link = document.getElementById("newLink").value.trim();
-    const rawDate = document.getElementById("newDateRes").value || new Date().toISOString().split('T')[0];
-    
-    if(!title || !link) return alert("Please fill both Title and Link!");
-
-    resources.unshift({
-        id: Date.now(),
-        sem: document.getElementById("newSem").value,
-        category: document.getElementById("newCat").value,
-        title: title,
-        link: link,
-        date: formatDate(rawDate)
-    });
-    
-    document.getElementById("newTitle").value = "";
-    document.getElementById("newLink").value = "";
-    setDefaultDates();
-    saveData();
-}
-
-function addNotice() {
-    const text = document.getElementById("newNoticeText").value.trim();
-    const rawDate = document.getElementById("newDateNot").value || new Date().toISOString().split('T')[0];
-    
-    if(!text) return alert("Notice cannot be empty!");
-
-    notices.unshift({ 
-        id: Date.now(), 
-        text: text, 
-        isUrgent: document.getElementById("newNoticeUrgent").checked,
-        date: formatDate(rawDate)
-    });
-    
-    document.getElementById("newNoticeText").value = "";
-    document.getElementById("newNoticeUrgent").checked = false;
-    setDefaultDates();
-    saveData();
-}
-
-function deleteItem(type, id) {
-    if(!confirm("Are you sure you want to permanently delete this item?")) return;
-    
-    if(type === 'res') {
-        resources = resources.filter(r => r.id !== id);
-    } else {
-        notices = notices.filter(n => n.id !== id);
-    }
-    saveData();
-}
-
-function saveData() {
-    localStorage.setItem('eijeResources', JSON.stringify(resources));
-    localStorage.setItem('eijeNotices', JSON.stringify(notices));
-    renderUI();
-}
-
-function renderAdminLists() {
-    const resList = document.getElementById("adminResourceList");
-    const notList = document.getElementById("adminNoticeList");
-    
-    resList.innerHTML = resources.length === 0 ? "<li style='color:#a0a4cc;'>No resources uploaded yet.</li>" : "";
-    resources.forEach(r => {
-        resList.innerHTML += `
-            <li>
-                <div style="max-width: 70%;"><strong>[${r.sem}]</strong> ${r.title} <span class="date-badge">${r.date}</span><br><span style="font-size:11px; color:#a0a4cc;">${r.category}</span></div> 
-                <button class="delete-btn" onclick="deleteItem('res', ${r.id})">Delete</button>
-            </li>
-        `;
-    });
-    
-    notList.innerHTML = notices.length === 0 ? "<li style='color:#a0a4cc;'>No notices added yet.</li>" : "";
-    notices.forEach(n => {
-        notList.innerHTML += `
-            <li>
-                <div style="max-width: 70%; line-height: 1.4;">${n.text} <br><span class="date-badge" style="margin-top:5px; display:inline-block;">${n.date}</span></div> 
-                <button class="delete-btn" onclick="deleteItem('not', ${n.id})">Delete</button>
-            </li>
-        `;
-    });
-}
-
 document.getElementById("semesterFilter").addEventListener("change", renderUI);
 document.getElementById("searchResource").addEventListener("keyup", renderUI);
-
-window.onload = renderUI;

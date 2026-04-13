@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EIJE Resource Hub</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1f213a">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="navbar">
+        <div class="logo">
+            <h2>🎓 EIJE Hub</h2>
+            <p>Departmental Resources</p>
+        </div>
+        <button id="loginBtn" class="admin-login-btn">Admin Login 🔒</button>
+        <button id="logoutBtn" class="admin-login-btn" style="display: none; background: #ff4b5c; color: white; border-color: #ff4b5c;" onclick="logoutAdmin()">Logout 🚪</button>
+    </header>
+
+    <main id="studentView" class="main-container">
+        <section class="notice-section">
+            <div class="notice-header">
+                <h3>📌 Notice Board</h3>
+                <span class="live-pulse">Live</span>
+            </div>
+            <div class="notice-box">
+                <ul id="noticeList"></ul>
+            </div>
+        </section>
+
+        <section class="filter-section">
+            <select id="semesterFilter" class="sem-dropdown">
+                <option value="All">All Semesters</option>
+                <option value="Sem1">1st Semester</option>
+                <option value="Sem2">2nd Semester</option>
+                <option value="Sem3">3rd Semester</option>
+                <option value="Sem4">4th Semester</option>
+                <option value="Sem5">5th Semester</option>
+                <option value="Sem6">6th Semester</option>
+            </select>
+            <input type="text" id="searchResource" placeholder="🔍 Search notes, topics..." class="search-bar">
+        </section>
+
+        <section class="category-grid" id="categoryGrid">
+            <div class="category-card" onclick="setCategoryFilter('Syllabus')"><div class="card-icon">📑</div><h4>Syllabus</h4><p>Official curriculum</p></div>
+            <div class="category-card" onclick="setCategoryFilter('Notes')"><div class="card-icon">📚</div><h4>Class Notes</h4><p>PDFs & references</p></div>
+            <div class="category-card" onclick="setCategoryFilter('PYQ')"><div class="card-icon">📝</div><h4>Previous Year Qs</h4><p>Past exam papers</p></div>
+            <div class="category-card" onclick="setCategoryFilter('Lab')"><div class="card-icon">⚙️</div><h4>Lab Manuals</h4><p>Experiments</p></div>
+        </section>
+
+        <div class="section-title" id="resourceSectionTitle" style="display:none; margin: 30px 0 15px 0; color: #7b61ff; border-bottom: 1px solid #2a2e4d; padding-bottom: 10px;">
+            Available Resources
+        </div>
+        <section class="resource-list" id="resourceList"></section>
+    </main>
+
+
+    <main id="adminDashboard" class="main-container" style="display: none;">
+        
+        <div class="admin-card">
+            <h3 style="color: #7b61ff; margin-bottom: 15px;">➕ Add New Resource</h3>
+            <div class="admin-form-row">
+                <select id="newSem" class="sem-dropdown">
+                    <option value="Sem1">Sem 1</option><option value="Sem2">Sem 2</option>
+                    <option value="Sem3">Sem 3</option><option value="Sem4">Sem 4</option>
+                    <option value="Sem5">Sem 5</option><option value="Sem6" selected>Sem 6</option>
+                </select>
+                <select id="newCat" class="sem-dropdown">
+                    <option value="Syllabus">Syllabus</option><option value="Notes" selected>Class Notes</option>
+                    <option value="PYQ">Previous Year Qs</option><option value="Lab">Lab Manuals</option>
+                </select>
+            </div>
+            
+            <div class="admin-form-row" style="margin-top: 12px;">
+                <input type="text" id="newTitle" placeholder="Topic Title (e.g. PIC18 Architecture)" class="input-box" style="flex: 2; margin-top: 0;">
+                <input type="date" id="newDateRes" class="input-box" style="flex: 1; margin-top: 0;" title="Select Publish Date">
+            </div>
+            
+            <input type="url" id="newLink" placeholder="Paste Google Drive Link Here" class="input-box">
+            <button class="primary-btn" onclick="addResource()">Publish Resource</button>
+        </div>
+
+        <div class="admin-card" style="border-left-color: #ffca28;">
+            <h3 style="color: #ffca28; margin-bottom: 15px;">📢 Publish Notice</h3>
+            <div class="admin-form-row">
+                <input type="text" id="newNoticeText" placeholder="Write notice content here..." class="input-box" style="flex: 2; margin-top: 0;">
+                <input type="date" id="newDateNot" class="input-box" style="flex: 1; margin-top: 0;" title="Select Publish Date">
+            </div>
+            <label class="checkbox-label">
+                <input type="checkbox" id="newNoticeUrgent"> Mark as Urgent (Red Text)
+            </label>
+            <button class="primary-btn" style="background: #ffca28; color: black;" onclick="addNotice()">Publish Notice</button>
+        </div>
+
+        <div class="admin-card" style="border-left-color: #ff4b5c;">
+            <h3 style="color: #ff4b5c; margin-bottom: 15px;">🗑️ Manage / Delete Uploads</h3>
+            <p class="admin-list-label">All Uploaded Resources:</p>
+            <ul id="adminResourceList" class="admin-manage-list" style="margin-bottom: 25px;"></ul>
+            <p class="admin-list-label">All Active Notices:</p>
+            <ul id="adminNoticeList" class="admin-manage-list"></ul>
+        </div>
+    </main>
+
+    <div id="adminModal" class="modal">
+        <div class="modal-content">
+            <h3 style="color: #7b61ff; margin-bottom: 15px;">Admin Access</h3>
+            <input type="password" id="adminPass" placeholder="Enter Secure Password" class="input-box">
+            <button class="primary-btn" onclick="checkLogin()">Login</button>
+            <button class="cancel-btn" onclick="closeModal()">Cancel</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

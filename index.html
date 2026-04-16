@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EIJE Resource Hub</title>
+    <title>ETC Resource Hub</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1f213a">
     <link rel="stylesheet" href="style.css">
@@ -12,7 +12,7 @@
 
     <header class="navbar">
         <div class="logo">
-            <h2>🎓 EIJE Hub</h2>
+            <h2>🎓 ETC Hub</h2>
             <p>Departmental Resources</p>
         </div>
         <button id="loginBtn" class="admin-login-btn">Admin Login 🔒</button>
@@ -57,6 +57,11 @@
     </main>
 
     <main id="adminDashboard" class="main-container" style="display: none;">
+        
+        <div class="admin-card" style="border-left-color: #00d284;">
+            <h3 style="color: #00d284; margin-bottom: 15px;">📊 App Analytics</h3>
+            <p style="color: #c9cfff;">Total App Views: <span id="totalViews" style="font-weight: bold; font-size: 24px; color: white;">0</span></p>
+        </div>
         <div class="admin-card">
             <h3 style="color: #7b61ff; margin-bottom: 15px;">➕ Add New Resource</h3>
             <div class="admin-form-row">
@@ -113,7 +118,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+        /* NEW: Added 'set' to the import list below */
+        import { getDatabase, ref, push, onValue, remove, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAMAOGNtXB6SonFeWn8YTKu8GR_go9kD_o",
@@ -130,7 +136,8 @@
         const db = getDatabase(app);
 
         window.firebaseAuth = { auth, signInWithEmailAndPassword, signOut, onAuthStateChanged };
-        window.firebaseDb = { db, ref, push, onValue, remove };
+        /* NEW: Added 'set' to the window object below */
+        window.firebaseDb = { db, ref, push, onValue, remove, set };
     </script>
     <script src="script.js"></script>
 </body>

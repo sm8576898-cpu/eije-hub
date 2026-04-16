@@ -6,7 +6,8 @@ setTimeout(initFirebase, 500);
 
 function initFirebase() {
     const { auth, onAuthStateChanged } = window.firebaseAuth;
-    const { db, ref, onValue } = window.firebaseDb;
+    // Ekhane 'set' add kora hoyeche views update korar jonno
+    const { db, ref, onValue, set } = window.firebaseDb;
 
     onAuthStateChanged(auth, (user) => {
         if (user) showAdminPanel();
@@ -30,6 +31,29 @@ function initFirebase() {
         notices.sort((a, b) => b.createdAt - a.createdAt);
         renderUI();
     });
+
+    // === VIEWS COUNTER LOGIC START ===
+    const viewRef = ref(db, "app_views");
+
+    // 1. Admin panel-e views dekhano
+    onValue(viewRef, (snapshot) => {
+        let currentViews = snapshot.val() || 0;
+        const viewDisplay = document.getElementById("totalViews");
+        if(viewDisplay) viewDisplay.innerText = currentViews;
+    });
+
+    // 2. Student app khulle view count 1 bariye dewa
+    setTimeout(() => {
+        if(document.getElementById("studentView").style.display !== "none") {
+            onValue(viewRef, (snapshot) => {
+                let currentViews = snapshot.val() || 0;
+                if(set) { // Database-e notun view count save kora
+                    set(viewRef, currentViews + 1);
+                }
+            }, { onlyOnce: true });
+        }
+    }, 1000);
+    // === VIEWS COUNTER LOGIC END ===
 }
 
 function formatDate(dateString) {

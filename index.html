@@ -62,6 +62,7 @@
             <h3 style="color: #00d284; margin-bottom: 15px;">📊 App Analytics</h3>
             <p style="color: #c9cfff;">Total App Views: <span id="totalViews" style="font-weight: bold; font-size: 24px; color: white;">0</span></p>
         </div>
+
         <div class="admin-card">
             <h3 style="color: #7b61ff; margin-bottom: 15px;">➕ Add New Resource</h3>
             <div class="admin-form-row">
@@ -79,8 +80,13 @@
                 <input type="text" id="newTitle" placeholder="Topic Title (e.g. PIC18 Architecture)" class="input-box" style="flex: 2; margin-top: 0;">
                 <input type="date" id="newDateRes" class="input-box" style="flex: 1; margin-top: 0;" title="Select Publish Date">
             </div>
+            
             <input type="url" id="newLink" placeholder="Paste Google Drive Link Here" class="input-box">
-            <button class="primary-btn" onclick="addResource()">Publish Resource</button>
+            
+            <p style="font-size: 12px; color: #a0a4cc; margin: 10px 0 5px 0;">Or Upload File (PDF max 3MB, Image max 1MB):</p>
+            <input type="file" id="newFile" class="input-box" accept=".pdf, image/*" style="padding: 10px;">
+            
+            <button class="primary-btn" id="publishBtn" onclick="addResource()">Publish Resource</button>
         </div>
 
         <div class="admin-card" style="border-left-color: #ffca28;">
@@ -118,8 +124,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        /* NEW: Added 'set' to the import list below */
         import { getDatabase, ref, push, onValue, remove, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+        import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAMAOGNtXB6SonFeWn8YTKu8GR_go9kD_o",
@@ -134,10 +140,11 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getDatabase(app);
+        const storage = getStorage(app);
 
         window.firebaseAuth = { auth, signInWithEmailAndPassword, signOut, onAuthStateChanged };
-        /* NEW: Added 'set' to the window object below */
         window.firebaseDb = { db, ref, push, onValue, remove, set };
+        window.firebaseStorage = { storage, sRef, uploadBytes, getDownloadURL };
     </script>
     <script src="script.js"></script>
 </body>

@@ -6,7 +6,6 @@ setTimeout(initFirebase, 500);
 
 function initFirebase() {
     const { auth, onAuthStateChanged } = window.firebaseAuth;
-    // Ekhane 'set' add kora hoyeche views update korar jonno
     const { db, ref, onValue, set } = window.firebaseDb;
 
     onAuthStateChanged(auth, (user) => {
@@ -32,28 +31,22 @@ function initFirebase() {
         renderUI();
     });
 
-    // === VIEWS COUNTER LOGIC START ===
+    // Views Counter Logic
     const viewRef = ref(db, "app_views");
-
-    // 1. Admin panel-e views dekhano
     onValue(viewRef, (snapshot) => {
         let currentViews = snapshot.val() || 0;
         const viewDisplay = document.getElementById("totalViews");
         if(viewDisplay) viewDisplay.innerText = currentViews;
     });
 
-    // 2. Student app khulle view count 1 bariye dewa
     setTimeout(() => {
         if(document.getElementById("studentView").style.display !== "none") {
             onValue(viewRef, (snapshot) => {
                 let currentViews = snapshot.val() || 0;
-                if(set) { // Database-e notun view count save kora
-                    set(viewRef, currentViews + 1);
-                }
+                if(set) set(viewRef, currentViews + 1);
             }, { onlyOnce: true });
         }
     }, 1000);
-    // === VIEWS COUNTER LOGIC END ===
 }
 
 function formatDate(dateString) {
@@ -88,7 +81,6 @@ async function checkLogin() {
     const email = document.getElementById("adminEmail").value;
     const pass = document.getElementById("adminPass").value;
     const err = document.getElementById("loginError");
-    
     try {
         const { auth, signInWithEmailAndPassword } = window.firebaseAuth;
         await signInWithEmailAndPassword(auth, email, pass);
@@ -123,13 +115,37 @@ function hideAdminPanel() {
 
 async function addResource() {
     const title = document.getElementById("newTitle").value.trim();
-    const link = document.getElementById("newLink").value.trim();
+    let link = document.getElementById("newLink").value.trim();
+    const fileInput = document.getElementById("newFile");
+    const file = fileInput.files[0];
+    const publishBtn = document.getElementById("publishBtn");
     const rawDate = document.getElementById("newDateRes").value || new Date().toISOString().split('T')[0];
     
-    if(!title || !link) return alert("Please fill both Title and Link!");
+    if(!title) return alert("Please enter a title!");
+
+    if (file) {
+        const fileSizeMB = file.size / (1024 * 1024);
+        if (file.type === "application/pdf" && fileSizeMB > 3) return alert("PDF max 3MB allowed!");
+        if (file.type.startsWith("image/") && fileSizeMB > 1) return alert("Image max 1MB allowed!");
+
+        try {
+            publishBtn.innerText = "Uploading File...";
+            publishBtn.disabled = true;
+
+            const { storage, sRef, uploadBytes, getDownloadURL } = window.firebaseStorage;
+            const storagePath = sRef(storage, `resources/${Date.now()}_${file.name}`);
+            const snapshot = await uploadBytes(storagePath, file);
+            link = await getDownloadURL(snapshot.ref);
+        } catch (error) {
+            publishBtn.innerText = "Publish Resource";
+            publishBtn.disabled = false;
+            return alert("Upload failed: " + error.message);
+        }
+    }
+
+    if(!link) return alert("Please provide a link or upload a file!");
 
     const { db, ref, push } = window.firebaseDb;
-    
     await push(ref(db, "resources"), {
         sem: document.getElementById("newSem").value,
         category: document.getElementById("newCat").value,
@@ -141,50 +157,46 @@ async function addResource() {
     
     document.getElementById("newTitle").value = "";
     document.getElementById("newLink").value = "";
+    fileInput.value = "";
+    publishBtn.innerText = "Publish Resource";
+    publishBtn.disabled = false;
     setDefaultDates();
+    alert("Resource Published!");
 }
 
 async function addNotice() {
     const text = document.getElementById("newNoticeText").value.trim();
     const rawDate = document.getElementById("newDateNot").value || new Date().toISOString().split('T')[0];
-    
     if(!text) return alert("Notice cannot be empty!");
 
     const { db, ref, push } = window.firebaseDb;
-
     await push(ref(db, "notices"), {
         text: text, 
         isUrgent: document.getElementById("newNoticeUrgent").checked,
         date: formatDate(rawDate),
         createdAt: Date.now()
     });
-    
     document.getElementById("newNoticeText").value = "";
     document.getElementById("newNoticeUrgent").checked = false;
     setDefaultDates();
 }
 
 async function deleteItem(type, id) {
-    if(!confirm("Are you sure you want to permanently delete this?")) return;
-    
+    if(!confirm("Are you sure?")) return;
     const { db, ref, remove } = window.firebaseDb;
     const path = type === 'res' ? `resources/${id}` : `notices/${id}`;
-    
     await remove(ref(db, path));
 }
 
 function renderUI() {
     renderNotices();
     renderStudentResources();
-    if(document.getElementById("adminDashboard").style.display === "block") {
-        renderAdminLists();
-    }
+    if(document.getElementById("adminDashboard").style.display === "block") renderAdminLists();
 }
 
 function renderNotices() {
     const list = document.getElementById("noticeList");
-    list.innerHTML = notices.length === 0 ? "<li style='color:#a0a4cc;'>No active notices at the moment.</li>" : "";
-    
+    list.innerHTML = notices.length === 0 ? "<li style='color:#a0a4cc;'>No active notices.</li>" : "";
     notices.forEach(n => {
         let prefix = n.isUrgent ? `<strong style="color:#ff4b5c">Urgent:</strong> ` : `<strong style="color:#00d284">New:</strong> `;
         let dateBadge = n.date ? `<span class="date-badge" style="float: right;">${n.date}</span>` : '';
@@ -206,12 +218,10 @@ function renderStudentResources() {
     });
 
     listContainer.innerHTML = "";
-
     if (filtered.length === 0) {
         titleHeader.style.display = "none";
         return;
     }
-
     titleHeader.style.display = "block";
     titleHeader.innerText = currentCategoryFilter === "All" ? "Available Resources" : `${currentCategoryFilter} Downloads`;
 
@@ -231,41 +241,22 @@ function renderStudentResources() {
 function renderAdminLists() {
     const resList = document.getElementById("adminResourceList");
     const notList = document.getElementById("adminNoticeList");
-    
-    resList.innerHTML = resources.length === 0 ? "<li style='color:#a0a4cc;'>No resources uploaded yet.</li>" : "";
+    resList.innerHTML = resources.length === 0 ? "<li>No resources.</li>" : "";
     resources.forEach(r => {
-        resList.innerHTML += `
-            <li>
-                <div style="max-width: 70%;"><strong>[${r.sem}]</strong> ${r.title} <span class="date-badge">${r.date}</span><br><span style="font-size:11px; color:#a0a4cc;">${r.category}</span></div> 
-                <button class="delete-btn" onclick="deleteItem('res', '${r.id}')">Delete</button>
-            </li>
-        `;
+        resList.innerHTML += `<li><div><strong>[${r.sem}]</strong> ${r.title}<br><span style="font-size:11px;">${r.category}</span></div><button class="delete-btn" onclick="deleteItem('res', '${r.id}')">Delete</button></li>`;
     });
-    
-    notList.innerHTML = notices.length === 0 ? "<li style='color:#a0a4cc;'>No notices added yet.</li>" : "";
+    notList.innerHTML = notices.length === 0 ? "<li>No notices.</li>" : "";
     notices.forEach(n => {
-        notList.innerHTML += `
-            <li>
-                <div style="max-width: 70%; line-height: 1.4;">${n.text} <br><span class="date-badge" style="margin-top:5px; display:inline-block;">${n.date}</span></div> 
-                <button class="delete-btn" onclick="deleteItem('not', '${n.id}')">Delete</button>
-            </li>
-        `;
+        notList.innerHTML += `<li><div>${n.text}<br><span class="date-badge">${n.date}</span></div><button class="delete-btn" onclick="deleteItem('not', '${n.id}')">Delete</button></li>`;
     });
 }
 
 function setCategoryFilter(cat) {
-    if(currentCategoryFilter === cat) {
-        currentCategoryFilter = "All";
-    } else {
-        currentCategoryFilter = cat;
-    }
-
+    currentCategoryFilter = (currentCategoryFilter === cat) ? "All" : cat;
     const cards = document.querySelectorAll(".category-card");
     cards.forEach(card => {
         card.classList.remove("active");
-        if(currentCategoryFilter !== "All" && card.innerHTML.includes(cat)) {
-            card.classList.add("active");
-        }
+        if(currentCategoryFilter !== "All" && card.innerHTML.includes(cat)) card.classList.add("active");
     });
     renderUI();
 }

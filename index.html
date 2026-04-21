@@ -83,9 +83,6 @@
             
             <input type="url" id="newLink" placeholder="Paste Google Drive Link Here" class="input-box">
             
-            <p style="font-size: 12px; color: #a0a4cc; margin: 10px 0 5px 0;">Or Upload File (PDF max 3MB, Image max 1MB):</p>
-            <input type="file" id="newFile" class="input-box" accept=".pdf, image/*" style="padding: 10px;">
-            
             <button class="primary-btn" id="publishBtn" onclick="addResource()">Publish Resource</button>
         </div>
 
@@ -125,7 +122,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { getDatabase, ref, push, onValue, remove, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-        import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAMAOGNtXB6SonFeWn8YTKu8GR_go9kD_o",
@@ -140,11 +136,9 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getDatabase(app);
-        const storage = getStorage(app);
 
         window.firebaseAuth = { auth, signInWithEmailAndPassword, signOut, onAuthStateChanged };
         window.firebaseDb = { db, ref, push, onValue, remove, set };
-        window.firebaseStorage = { storage, sRef, uploadBytes, getDownloadURL };
     </script>
     <script src="script.js"></script>
 </body>

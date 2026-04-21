@@ -115,35 +115,10 @@ function hideAdminPanel() {
 
 async function addResource() {
     const title = document.getElementById("newTitle").value.trim();
-    let link = document.getElementById("newLink").value.trim();
-    const fileInput = document.getElementById("newFile");
-    const file = fileInput.files[0];
-    const publishBtn = document.getElementById("publishBtn");
+    const link = document.getElementById("newLink").value.trim();
     const rawDate = document.getElementById("newDateRes").value || new Date().toISOString().split('T')[0];
     
-    if(!title) return alert("Please enter a title!");
-
-    if (file) {
-        const fileSizeMB = file.size / (1024 * 1024);
-        if (file.type === "application/pdf" && fileSizeMB > 3) return alert("PDF max 3MB allowed!");
-        if (file.type.startsWith("image/") && fileSizeMB > 1) return alert("Image max 1MB allowed!");
-
-        try {
-            publishBtn.innerText = "Uploading File...";
-            publishBtn.disabled = true;
-
-            const { storage, sRef, uploadBytes, getDownloadURL } = window.firebaseStorage;
-            const storagePath = sRef(storage, `resources/${Date.now()}_${file.name}`);
-            const snapshot = await uploadBytes(storagePath, file);
-            link = await getDownloadURL(snapshot.ref);
-        } catch (error) {
-            publishBtn.innerText = "Publish Resource";
-            publishBtn.disabled = false;
-            return alert("Upload failed: " + error.message);
-        }
-    }
-
-    if(!link) return alert("Please provide a link or upload a file!");
+    if(!title || !link) return alert("Please fill both Title and Link!");
 
     const { db, ref, push } = window.firebaseDb;
     await push(ref(db, "resources"), {
@@ -157,9 +132,6 @@ async function addResource() {
     
     document.getElementById("newTitle").value = "";
     document.getElementById("newLink").value = "";
-    fileInput.value = "";
-    publishBtn.innerText = "Publish Resource";
-    publishBtn.disabled = false;
     setDefaultDates();
     alert("Resource Published!");
 }
